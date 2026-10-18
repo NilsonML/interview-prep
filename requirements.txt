@@ -1,0 +1,4 @@
+numpy>=1.26
+scikit-learn>=1.4   # только для сверки в тестах ml_basics
+pytest>=8
+ruff>=0.5
