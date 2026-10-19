@@ -26,7 +26,10 @@ def climb_stairs(n: int) -> int:
 
     dp[i] = dp[i-1] + dp[i-2]. Цель: O(n) времени, O(1) памяти.
     """
-    raise NotImplementedError
+    a, b = 1, 1  # способы для ступенек i-2 и i-1
+    for _ in range(n - 1):
+        a, b = b, a + b
+    return b
 
 
 def rob(houses: list[int]) -> int:
@@ -35,7 +38,10 @@ def rob(houses: list[int]) -> int:
     >>> rob([2, 7, 9, 3, 1])
     12
     """
-    raise NotImplementedError
+    take, skip = 0, 0  # лучшая сумма, если текущий дом взят / не взят
+    for money in houses:
+        take, skip = skip + money, max(take, skip)
+    return max(take, skip)
 
 
 def coin_change(coins: list[int], amount: int) -> int:
@@ -47,7 +53,13 @@ def coin_change(coins: list[int], amount: int) -> int:
 
     Подумай: почему жадный алгоритм «берём самую крупную» ошибается на [1, 3, 4], 6?
     """
-    raise NotImplementedError
+    inf = amount + 1  # больше любого возможного ответа
+    dp = [0] + [inf] * amount  # dp[s] — минимум монет на сумму s
+    for s in range(1, amount + 1):
+        for coin in coins:
+            if coin <= s:
+                dp[s] = min(dp[s], dp[s - coin] + 1)
+    return dp[amount] if dp[amount] != inf else -1
 
 
 def length_of_lis(nums: list[int]) -> int:
@@ -58,7 +70,21 @@ def length_of_lis(nums: list[int]) -> int:
 
     Сначала O(n^2): dp[i] — длина LIS, заканчивающейся в i. Бонус: O(n log n).
     """
-    raise NotImplementedError
+    # O(n log n): tails[k] — наименьший возможный хвост возрастающей последовательности длины k+1
+    tails: list[int] = []
+    for x in nums:
+        lo, hi = 0, len(tails)
+        while lo < hi:  # lower_bound из паттерна 5
+            mid = (lo + hi) // 2
+            if tails[mid] < x:
+                lo = mid + 1
+            else:
+                hi = mid
+        if lo == len(tails):
+            tails.append(x)
+        else:
+            tails[lo] = x
+    return len(tails)
 
 
 def longest_common_subsequence(a: str, b: str) -> int:
@@ -69,7 +95,16 @@ def longest_common_subsequence(a: str, b: str) -> int:
 
     dp[i][j] — LCS префиксов a[:i] и b[:j].
     """
-    raise NotImplementedError
+    prev = [0] * (len(b) + 1)  # храним только предыдущую строку таблицы: O(len(b)) памяти
+    for i in range(1, len(a) + 1):
+        cur = [0] * (len(b) + 1)
+        for j in range(1, len(b) + 1):
+            if a[i - 1] == b[j - 1]:
+                cur[j] = prev[j - 1] + 1
+            else:
+                cur[j] = max(prev[j], cur[j - 1])
+        prev = cur
+    return prev[-1]
 
 
 def edit_distance(a: str, b: str) -> int:
@@ -80,7 +115,16 @@ def edit_distance(a: str, b: str) -> int:
 
     Где встречается в ML: метрики для распознавания речи (WER), исправление опечаток.
     """
-    raise NotImplementedError
+    prev = list(range(len(b) + 1))  # из пустой a в b[:j] — j вставок
+    for i in range(1, len(a) + 1):
+        cur = [i] + [0] * len(b)
+        for j in range(1, len(b) + 1):
+            if a[i - 1] == b[j - 1]:
+                cur[j] = prev[j - 1]
+            else:
+                cur[j] = 1 + min(prev[j], cur[j - 1], prev[j - 1])  # удалить, вставить, заменить
+        prev = cur
+    return prev[-1]
 
 
 def unique_paths(m: int, n: int) -> int:
@@ -90,4 +134,8 @@ def unique_paths(m: int, n: int) -> int:
     >>> unique_paths(3, 7)
     28
     """
-    raise NotImplementedError
+    row = [1] * n
+    for _ in range(1, m):
+        for j in range(1, n):
+            row[j] += row[j - 1]  # сверху (старое row[j]) + слева (новое row[j-1])
+    return row[-1]

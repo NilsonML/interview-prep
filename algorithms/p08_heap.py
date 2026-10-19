@@ -11,6 +11,8 @@ PYTHON: heapq — только min-heap. Max-heap: кладём -x. Кортеж
 поэлементно: (приоритет, номер, объект) — номер разрешает ничьи.
 """
 
+import heapq
+
 
 def kth_largest(nums: list[int], k: int) -> int:
     """LeetCode 215. k-й по величине элемент (с учётом повторов).
@@ -20,7 +22,12 @@ def kth_largest(nums: list[int], k: int) -> int:
 
     Цель: O(n log k). Подумай: min-heap из k элементов — что лежит на её вершине?
     """
-    raise NotImplementedError
+    heap: list[int] = []
+    for x in nums:
+        heapq.heappush(heap, x)
+        if len(heap) > k:
+            heapq.heappop(heap)  # выкидываем меньший: в куче остаются k наибольших
+    return heap[0]
 
 
 def k_closest(points: list[tuple[int, int]], k: int) -> list[tuple[int, int]]:
@@ -30,7 +37,8 @@ def k_closest(points: list[tuple[int, int]], k: int) -> list[tuple[int, int]]:
     >>> k_closest([(1, 3), (-2, 2)], 1)
     [(-2, 2)]
     """
-    raise NotImplementedError
+    # nsmallest сам держит кучу размера k. Ключ без sqrt: монотонность сохраняется.
+    return heapq.nsmallest(k, points, key=lambda p: (p[0] ** 2 + p[1] ** 2, p))
 
 
 def merge_k_sorted(lists: list[list[int]]) -> list[int]:
@@ -41,7 +49,15 @@ def merge_k_sorted(lists: list[list[int]]) -> list[int]:
 
     Цель: O(N log k), N — всего элементов. Без sorted() по всем элементам.
     """
-    raise NotImplementedError
+    heap = [(lst[0], i, 0) for i, lst in enumerate(lists) if lst]  # (значение, список, позиция)
+    heapq.heapify(heap)
+    result = []
+    while heap:
+        value, i, j = heapq.heappop(heap)
+        result.append(value)
+        if j + 1 < len(lists[i]):
+            heapq.heappush(heap, (lists[i][j + 1], i, j + 1))
+    return result
 
 
 def last_stone_weight(stones: list[int]) -> int:
@@ -51,7 +67,13 @@ def last_stone_weight(stones: list[int]) -> int:
     >>> last_stone_weight([2, 7, 4, 1, 8, 1])
     1
     """
-    raise NotImplementedError
+    heap = [-s for s in stones]  # max-heap через отрицательные числа
+    heapq.heapify(heap)
+    while len(heap) > 1:
+        y, x = -heapq.heappop(heap), -heapq.heappop(heap)
+        if y != x:
+            heapq.heappush(heap, -(y - x))
+    return -heap[0] if heap else 0
 
 
 class MedianFinder:
@@ -64,10 +86,17 @@ class MedianFinder:
     """
 
     def __init__(self) -> None:
-        raise NotImplementedError
+        self._low: list[int] = []  # max-heap (отрицательные), меньшая половина
+        self._high: list[int] = []  # min-heap, большая половина
 
     def add_num(self, num: int) -> None:
-        raise NotImplementedError
+        heapq.heappush(self._low, -num)
+        # Самый большой из меньшей половины переезжает в большую: порядок между кучами
+        heapq.heappush(self._high, -heapq.heappop(self._low))
+        if len(self._high) > len(self._low):  # инвариант: len(low) >= len(high)
+            heapq.heappush(self._low, -heapq.heappop(self._high))
 
     def find_median(self) -> float:
-        raise NotImplementedError
+        if len(self._low) > len(self._high):
+            return float(-self._low[0])
+        return (-self._low[0] + self._high[0]) / 2

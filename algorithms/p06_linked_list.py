@@ -45,7 +45,10 @@ def reverse_list(head: ListNode | None) -> ListNode | None:
     >>> to_list(reverse_list(from_list([1, 2, 3])))
     [3, 2, 1]
     """
-    raise NotImplementedError
+    prev = None
+    while head is not None:
+        head.next, prev, head = prev, head, head.next
+    return prev
 
 
 def merge_two_lists(a: ListNode | None, b: ListNode | None) -> ListNode | None:
@@ -54,7 +57,15 @@ def merge_two_lists(a: ListNode | None, b: ListNode | None) -> ListNode | None:
     >>> to_list(merge_two_lists(from_list([1, 2, 4]), from_list([1, 3, 4])))
     [1, 1, 2, 3, 4, 4]
     """
-    raise NotImplementedError
+    dummy = tail = ListNode(0)  # сторож: не нужно отдельно выбирать голову результата
+    while a is not None and b is not None:
+        if a.val <= b.val:
+            tail.next, a = a, a.next
+        else:
+            tail.next, b = b, b.next
+        tail = tail.next
+    tail.next = a if a is not None else b
+    return dummy.next
 
 
 def has_cycle(head: ListNode | None) -> bool:
@@ -62,7 +73,12 @@ def has_cycle(head: ListNode | None) -> bool:
 
     Подумай: алгоритм Флойда «черепаха и заяц». Если цикл есть, быстрый догонит медленного.
     """
-    raise NotImplementedError
+    slow = fast = head
+    while fast is not None and fast.next is not None:
+        slow, fast = slow.next, fast.next.next
+        if slow is fast:
+            return True
+    return False
 
 
 def middle_node(head: ListNode | None) -> ListNode | None:
@@ -71,7 +87,10 @@ def middle_node(head: ListNode | None) -> ListNode | None:
     >>> to_list(middle_node(from_list([1, 2, 3, 4, 5])))
     [3, 4, 5]
     """
-    raise NotImplementedError
+    slow = fast = head
+    while fast is not None and fast.next is not None:
+        slow, fast = slow.next, fast.next.next
+    return slow
 
 
 def remove_nth_from_end(head: ListNode | None, n: int) -> ListNode | None:
@@ -82,4 +101,11 @@ def remove_nth_from_end(head: ListNode | None, n: int) -> ListNode | None:
 
     Подумай: два указателя на расстоянии n. Зачем здесь dummy?
     """
-    raise NotImplementedError
+    dummy = ListNode(0, head)
+    fast = slow = dummy
+    for _ in range(n + 1):  # fast уходит на n+1 вперёд, чтобы slow встал ПЕРЕД удаляемым
+        fast = fast.next
+    while fast is not None:
+        slow, fast = slow.next, fast.next
+    slow.next = slow.next.next
+    return dummy.next  # голова могла удалиться — поэтому не head

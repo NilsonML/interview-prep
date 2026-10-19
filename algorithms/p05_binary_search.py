@@ -13,6 +13,8 @@
 условие истинно -> hi = mid, иначе lo = mid + 1. Ответ — lo.
 """
 
+from math import ceil
+
 
 def binary_search(nums: list[int], target: int) -> int:
     """LeetCode 704. Индекс target в отсортированном массиве или -1.
@@ -20,7 +22,16 @@ def binary_search(nums: list[int], target: int) -> int:
     >>> binary_search([-1, 0, 3, 5, 9, 12], 9)
     4
     """
-    raise NotImplementedError
+    lo, hi = 0, len(nums) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2  # в Python нет переполнения int, в Java/C++ пиши lo + (hi-lo)//2
+        if nums[mid] == target:
+            return mid
+        if nums[mid] < target:
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return -1
 
 
 def lower_bound(nums: list[int], target: int) -> int:
@@ -34,7 +45,14 @@ def lower_bound(nums: list[int], target: int) -> int:
 
     Без модуля bisect.
     """
-    raise NotImplementedError
+    lo, hi = 0, len(nums)  # ответ может быть len(nums) — поэтому hi не включается
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if nums[mid] < target:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
 
 
 def search_rotated(nums: list[int], target: int) -> int:
@@ -46,7 +64,22 @@ def search_rotated(nums: list[int], target: int) -> int:
 
     Подумай: после деления пополам одна из половин всегда отсортирована. Какая?
     """
-    raise NotImplementedError
+    lo, hi = 0, len(nums) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if nums[mid] == target:
+            return mid
+        if nums[lo] <= nums[mid]:  # левая половина отсортирована
+            if nums[lo] <= target < nums[mid]:
+                hi = mid - 1
+            else:
+                lo = mid + 1
+        else:  # правая половина отсортирована
+            if nums[mid] < target <= nums[hi]:
+                lo = mid + 1
+            else:
+                hi = mid - 1
+    return -1
 
 
 def find_min_rotated(nums: list[int]) -> int:
@@ -55,7 +88,14 @@ def find_min_rotated(nums: list[int]) -> int:
     >>> find_min_rotated([3, 4, 5, 1, 2])
     1
     """
-    raise NotImplementedError
+    lo, hi = 0, len(nums) - 1
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if nums[mid] > nums[hi]:  # минимум строго правее mid
+            lo = mid + 1
+        else:  # минимум в [lo, mid]
+            hi = mid
+    return nums[lo]
 
 
 def min_eating_speed(piles: list[int], h: int) -> int:
@@ -67,7 +107,18 @@ def min_eating_speed(piles: list[int], h: int) -> int:
 
     Бинарный поиск ПО ОТВЕТУ: если скорость k успевает, то и k+1 успевает.
     """
-    raise NotImplementedError
+
+    def hours(k: int) -> int:
+        return sum(ceil(p / k) for p in piles)
+
+    lo, hi = 1, max(piles)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if hours(mid) <= h:
+            hi = mid  # mid подходит, но может есть меньше
+        else:
+            lo = mid + 1
+    return lo
 
 
 def int_sqrt(x: int) -> int:
@@ -76,4 +127,11 @@ def int_sqrt(x: int) -> int:
     >>> int_sqrt(8)
     2
     """
-    raise NotImplementedError
+    lo, hi = 0, x + 1  # ищем первое m, у которого m*m > x; ответ на 1 меньше
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if mid * mid > x:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo - 1

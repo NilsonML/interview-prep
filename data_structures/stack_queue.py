@@ -37,47 +37,82 @@ from typing import Any
 
 class MinStack:
     def __init__(self) -> None:
-        raise NotImplementedError
+        # Храним пары (значение, минимум на момент вставки):
+        # после pop минимум автоматически "откатывается".
+        self._items: list[tuple[Any, Any]] = []
 
     def push(self, value: Any) -> None:
-        raise NotImplementedError
+        current_min = value if not self._items else min(value, self._items[-1][1])
+        self._items.append((value, current_min))
 
     def pop(self) -> Any:
-        raise NotImplementedError
+        if not self._items:
+            raise IndexError("pop from empty stack")
+        return self._items.pop()[0]
 
     def top(self) -> Any:
-        raise NotImplementedError
+        if not self._items:
+            raise IndexError("top from empty stack")
+        return self._items[-1][0]
 
     def get_min(self) -> Any:
-        raise NotImplementedError
+        if not self._items:
+            raise IndexError("min from empty stack")
+        return self._items[-1][1]
 
 
 class QueueFromStacks:
     def __init__(self) -> None:
-        raise NotImplementedError
+        self._in: list[Any] = []  # сюда кладём
+        self._out: list[Any] = []  # отсюда забираем (в обратном порядке)
+
+    def _shift(self) -> None:
+        # Перекладываем, только когда _out пуст: каждый элемент переезжает ровно один раз
+        # -> суммарно O(n) на n операций -> O(1) амортизированно.
+        if not self._out:
+            while self._in:
+                self._out.append(self._in.pop())
 
     def enqueue(self, value: Any) -> None:
-        raise NotImplementedError
+        self._in.append(value)
 
     def dequeue(self) -> Any:
-        raise NotImplementedError
+        self._shift()
+        if not self._out:
+            raise IndexError("dequeue from empty queue")
+        return self._out.pop()
 
     def peek(self) -> Any:
-        raise NotImplementedError
+        self._shift()
+        if not self._out:
+            raise IndexError("peek from empty queue")
+        return self._out[-1]
 
     def __len__(self) -> int:
-        raise NotImplementedError
+        return len(self._in) + len(self._out)
 
 
 class RingBuffer:
     def __init__(self, capacity: int) -> None:
-        raise NotImplementedError
+        self._data: list[Any] = [None] * capacity
+        self._head = 0  # индекс первого элемента
+        self._size = 0
 
     def enqueue(self, value: Any) -> None:
-        raise NotImplementedError
+        if self._size == len(self._data):
+            raise OverflowError("buffer is full")
+        tail = (self._head + self._size) % len(self._data)  # % "заворачивает" индекс в начало
+        self._data[tail] = value
+        self._size += 1
 
     def dequeue(self) -> Any:
-        raise NotImplementedError
+        if self._size == 0:
+            raise IndexError("dequeue from empty buffer")
+        value = self._data[self._head]
+        self._data[self._head] = None
+        self._head = (self._head + 1) % len(self._data)
+        self._size -= 1
+        return value
 
     def __len__(self) -> int:
-        raise NotImplementedError
+        return self._size

@@ -23,7 +23,18 @@ def subsets(nums: list[int]) -> list[list[int]]:
     >>> subsets([1, 2])
     [[], [1], [1, 2], [2]]
     """
-    raise NotImplementedError
+    result: list[list[int]] = []
+    path: list[int] = []
+
+    def backtrack(start: int) -> None:
+        result.append(path.copy())  # copy: path продолжит меняться
+        for i in range(start, len(nums)):
+            path.append(nums[i])
+            backtrack(i + 1)
+            path.pop()
+
+    backtrack(0)
+    return sorted(result)
 
 
 def permutations(nums: list[int]) -> list[list[int]]:
@@ -34,7 +45,24 @@ def permutations(nums: list[int]) -> list[list[int]]:
 
     Без itertools.permutations.
     """
-    raise NotImplementedError
+    result: list[list[int]] = []
+    path: list[int] = []
+    used = [False] * len(nums)
+
+    def backtrack() -> None:
+        if len(path) == len(nums):
+            result.append(path.copy())
+            return
+        for i, x in enumerate(nums):
+            if not used[i]:
+                used[i] = True
+                path.append(x)
+                backtrack()
+                path.pop()
+                used[i] = False
+
+    backtrack()
+    return sorted(result)
 
 
 def combination_sum(candidates: list[int], target: int) -> list[list[int]]:
@@ -45,7 +73,23 @@ def combination_sum(candidates: list[int], target: int) -> list[list[int]]:
     >>> combination_sum([2, 3, 6, 7], 7)
     [[2, 2, 3], [7]]
     """
-    raise NotImplementedError
+    candidates = sorted(candidates)
+    result: list[list[int]] = []
+    path: list[int] = []
+
+    def backtrack(start: int, remaining: int) -> None:
+        if remaining == 0:
+            result.append(path.copy())
+            return
+        for i in range(start, len(candidates)):
+            if candidates[i] > remaining:
+                break  # дальше только больше — отсечение
+            path.append(candidates[i])
+            backtrack(i, remaining - candidates[i])  # i, а не i+1: число можно повторить
+            path.pop()
+
+    backtrack(0, target)
+    return result
 
 
 def generate_parentheses(n: int) -> list[str]:
@@ -54,7 +98,19 @@ def generate_parentheses(n: int) -> list[str]:
     >>> generate_parentheses(2)
     ['(())', '()()']
     """
-    raise NotImplementedError
+    result: list[str] = []
+
+    def backtrack(current: str, opened: int, closed: int) -> None:
+        if len(current) == 2 * n:
+            result.append(current)
+            return
+        if opened < n:
+            backtrack(current + "(", opened + 1, closed)
+        if closed < opened:  # закрыть можно, только если есть незакрытая
+            backtrack(current + ")", opened, closed + 1)
+
+    backtrack("", 0, 0)
+    return result
 
 
 def word_search(board: list[list[str]], word: str) -> bool:
@@ -64,4 +120,18 @@ def word_search(board: list[list[str]], word: str) -> bool:
     >>> word_search([["A", "B"], ["C", "D"]], "ABD")
     True
     """
-    raise NotImplementedError
+    rows, cols = len(board), len(board[0])
+
+    def backtrack(r: int, c: int, i: int) -> bool:
+        if i == len(word):
+            return True
+        if not (0 <= r < rows and 0 <= c < cols) or board[r][c] != word[i]:
+            return False
+        saved, board[r][c] = board[r][c], "#"  # помечаем как использованную
+        found = any(
+            backtrack(r + dr, c + dc, i + 1) for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1))
+        )
+        board[r][c] = saved  # возврат
+        return found
+
+    return any(backtrack(r, c, 0) for r in range(rows) for c in range(cols))

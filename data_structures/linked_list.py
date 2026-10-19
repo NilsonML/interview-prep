@@ -44,25 +44,58 @@ class Node:
 
 class LinkedList:
     def __init__(self) -> None:
-        raise NotImplementedError
+        self.head: Node | None = None
+        self.tail: Node | None = None
+        self._size = 0
 
     def push_front(self, value: Any) -> None:
-        raise NotImplementedError
+        self.head = Node(value, self.head)
+        if self.tail is None:  # список был пуст: новый узел — и голова, и хвост
+            self.tail = self.head
+        self._size += 1
 
     def push_back(self, value: Any) -> None:
-        raise NotImplementedError
+        node = Node(value)
+        if self.tail is None:
+            self.head = self.tail = node
+        else:
+            self.tail.next = node
+            self.tail = node
+        self._size += 1
 
     def pop_front(self) -> Any:
-        raise NotImplementedError
+        if self.head is None:
+            raise IndexError("pop from empty list")
+        node = self.head
+        self.head = node.next
+        if self.head is None:  # удалили последний узел
+            self.tail = None
+        self._size -= 1
+        return node.value
 
     def find(self, value: Any) -> bool:
-        raise NotImplementedError
+        node = self.head
+        while node is not None:
+            if node.value == value:
+                return True
+            node = node.next
+        return False
 
     def reverse(self) -> None:
-        raise NotImplementedError
+        # Три указателя: prev <- current, затем сдвигаемся. Каждую ссылку разворачиваем один раз.
+        prev, current = None, self.head
+        self.tail = self.head
+        while current is not None:
+            nxt = current.next
+            current.next = prev
+            prev, current = current, nxt
+        self.head = prev
 
     def __len__(self) -> int:
-        raise NotImplementedError
+        return self._size
 
     def __iter__(self) -> Iterator[Any]:
-        raise NotImplementedError
+        node = self.head
+        while node is not None:
+            yield node.value
+            node = node.next

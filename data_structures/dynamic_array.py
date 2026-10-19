@@ -39,29 +39,60 @@ from typing import Any
 
 class DynamicArray:
     def __init__(self, capacity: int = 4) -> None:
-        raise NotImplementedError
+        self._data: list[Any] = [None] * capacity
+        self._size = 0
 
     @property
     def capacity(self) -> int:
-        raise NotImplementedError
+        return len(self._data)
+
+    def _normalize(self, index: int) -> int:
+        if index < 0:
+            index += self._size
+        if not 0 <= index < self._size:
+            raise IndexError("index out of range")
+        return index
+
+    def _grow(self) -> None:
+        # Удвоение: дорогое копирование O(n) происходит всё реже, суммарно n append
+        # стоят O(n). При росте на константу +k было бы O(n^2 / k).
+        new_data = [None] * (2 * len(self._data) or 1)
+        for i in range(self._size):
+            new_data[i] = self._data[i]
+        self._data = new_data
 
     def append(self, value: Any) -> None:
-        raise NotImplementedError
+        if self._size == len(self._data):
+            self._grow()
+        self._data[self._size] = value
+        self._size += 1
 
     def insert(self, index: int, value: Any) -> None:
-        raise NotImplementedError
+        index = max(0, min(index, self._size))  # как list.insert: за границей вставляем с краю
+        if self._size == len(self._data):
+            self._grow()
+        for i in range(self._size, index, -1):  # сдвиг вправо, идём с конца
+            self._data[i] = self._data[i - 1]
+        self._data[index] = value
+        self._size += 1
 
     def pop(self) -> Any:
-        raise NotImplementedError
+        if self._size == 0:
+            raise IndexError("pop from empty array")
+        self._size -= 1
+        value = self._data[self._size]
+        self._data[self._size] = None  # не держим ссылку: объект сможет удалиться из памяти
+        return value
 
     def __getitem__(self, index: int) -> Any:
-        raise NotImplementedError
+        return self._data[self._normalize(index)]
 
     def __setitem__(self, index: int, value: Any) -> None:
-        raise NotImplementedError
+        self._data[self._normalize(index)] = value
 
     def __len__(self) -> int:
-        raise NotImplementedError
+        return self._size
 
     def __iter__(self) -> Iterator[Any]:
-        raise NotImplementedError
+        for i in range(self._size):
+            yield self._data[i]
