@@ -1,7 +1,12 @@
-"""Модуль collections и встроенные структуры: Counter, defaultdict, deque.
+"""Модуль collections: Counter, defaultdict, deque.     [неделя 3]
 
-Знать стандартную библиотеку — это тоже навык с интервью: ответ «я бы взял Counter»
-часто лучше десяти строк ручного подсчёта.
+На интервью ответ «я бы взял Counter» часто лучше десяти строк ручного подсчёта.
+    Counter      — dict-счётчик: Counter(words).most_common(3); счётчики можно складывать;
+    defaultdict  — dict со значением по умолчанию: defaultdict(list) для группировки;
+    deque        — двусторонняя очередь: append / appendleft / pop / popleft за O(1)
+                   (у list pop(0) — O(n)); deque(maxlen=k) — окно последних k элементов.
+Монотонная очередь (последняя задача) — deque, где значения упорядочены; родственник
+монотонного стека из паттерна 4.
 """
 
 from collections.abc import Callable, Hashable, Iterable
