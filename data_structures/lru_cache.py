@@ -30,15 +30,55 @@
 from typing import Any
 
 
+class _Node:
+    __slots__ = ("key", "value", "prev", "next")  # экономия памяти: нет __dict__ у узлов
+
+    def __init__(self, key: Any = None, value: Any = None) -> None:
+        self.key, self.value = key, value
+        self.prev: _Node | None = None
+        self.next: _Node | None = None
+
+
 class LRUCache:
     def __init__(self, capacity: int) -> None:
-        raise NotImplementedError
+        self.capacity = capacity
+        self._map: dict[Any, _Node] = {}
+        # Сторожа: head.next — самый старый, tail.prev — самый свежий.
+        # Список никогда не пуст, поэтому вставка/удаление без проверок на None.
+        self._head, self._tail = _Node(), _Node()
+        self._head.next, self._tail.prev = self._tail, self._head
+
+    def _unlink(self, node: _Node) -> None:
+        node.prev.next, node.next.prev = node.next, node.prev
+
+    def _append(self, node: _Node) -> None:
+        last = self._tail.prev
+        last.next = node
+        node.prev, node.next = last, self._tail
+        self._tail.prev = node
 
     def get(self, key: Any) -> Any:
-        raise NotImplementedError
+        node = self._map.get(key)
+        if node is None:
+            return -1
+        self._unlink(node)
+        self._append(node)
+        return node.value
 
     def put(self, key: Any, value: Any) -> None:
-        raise NotImplementedError
+        node = self._map.get(key)
+        if node is not None:
+            node.value = value
+            self._unlink(node)
+            self._append(node)
+            return
+        if len(self._map) == self.capacity:
+            oldest = self._head.next
+            self._unlink(oldest)
+            del self._map[oldest.key]  # поэтому узел хранит и ключ, а не только значение
+        node = _Node(key, value)
+        self._map[key] = node
+        self._append(node)
 
     def __len__(self) -> int:
-        raise NotImplementedError
+        return len(self._map)

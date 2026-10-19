@@ -19,6 +19,8 @@
     - nonlocal нужен, чтобы ПРИСВОИТЬ переменной из замыкания (без него создастся локальная).
 """
 
+import functools
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -31,24 +33,56 @@ def make_counter() -> Callable[[], int]:
     >>> c(), c()
     (1, 2)
     """
-    raise NotImplementedError
+    count = 0
+
+    def counter() -> int:
+        nonlocal count  # без nonlocal присваивание создало бы новую локальную переменную
+        count += 1
+        return count
+
+    return counter
 
 
 def count_calls(func: Callable[..., Any]) -> Callable[..., Any]:
     """Декоратор: считает вызовы функции в атрибуте wrapper.calls."""
-    raise NotImplementedError
+
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        wrapper.calls += 1
+        return func(*args, **kwargs)
+
+    wrapper.calls = 0
+    return wrapper
 
 
 def timer(func: Callable[..., Any]) -> Callable[..., Any]:
     """Декоратор: записывает длительность последнего вызова в секундах в wrapper.last_elapsed.
     Время считай даже если функция бросила исключение."""
-    raise NotImplementedError
+
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        start = time.perf_counter()
+        try:
+            return func(*args, **kwargs)
+        finally:  # finally выполнится и при return, и при исключении
+            wrapper.last_elapsed = time.perf_counter() - start
+
+    wrapper.last_elapsed = None
+    return wrapper
 
 
 def memoize(func: Callable[..., Any]) -> Callable[..., Any]:
     """Декоратор: кеширует результат по позиционным аргументам (как functools.cache,
     но сам). Без functools.cache / lru_cache."""
-    raise NotImplementedError
+    cache: dict[tuple[Any, ...], Any] = {}
+
+    @functools.wraps(func)
+    def wrapper(*args: Any) -> Any:
+        if args not in cache:  # args — кортеж, он хешируем (если хешируемы элементы)
+            cache[args] = func(*args)
+        return cache[args]
+
+    return wrapper
 
 
 def retry(
@@ -63,4 +97,19 @@ def retry(
 
     Подумай: почему здесь три уровня вложенных функций?
     """
-    raise NotImplementedError
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            for attempt in range(1, times + 1):
+                try:
+                    return func(*args, **kwargs)
+                except exceptions:
+                    if attempt == times:
+                        raise  # голый raise сохраняет исходный traceback
+                    time.sleep(delay)
+            return None  # недостижимо при times >= 1
+
+        return wrapper
+
+    return decorator

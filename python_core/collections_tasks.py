@@ -9,6 +9,8 @@
 монотонного стека из паттерна 4.
 """
 
+import re
+from collections import Counter, defaultdict, deque
 from collections.abc import Callable, Hashable, Iterable
 from typing import Any
 
@@ -21,7 +23,11 @@ def first_unique_char(s: str) -> int:
     >>> first_unique_char("aabb")
     -1
     """
-    raise NotImplementedError
+    counts = Counter(s)
+    for i, ch in enumerate(s):
+        if counts[ch] == 1:
+            return i
+    return -1
 
 
 def group_by(items: Iterable[Any], key: Callable[[Any], Hashable]) -> dict[Hashable, list[Any]]:
@@ -30,7 +36,10 @@ def group_by(items: Iterable[Any], key: Callable[[Any], Hashable]) -> dict[Hasha
     >>> group_by(["apple", "avocado", "banana"], key=lambda w: w[0])
     {'a': ['apple', 'avocado'], 'b': ['banana']}
     """
-    raise NotImplementedError
+    groups: defaultdict[Hashable, list[Any]] = defaultdict(list)
+    for item in items:
+        groups[key(item)].append(item)
+    return dict(groups)
 
 
 def merge_counts(*dicts: dict[str, int]) -> dict[str, int]:
@@ -39,7 +48,10 @@ def merge_counts(*dicts: dict[str, int]) -> dict[str, int]:
     >>> merge_counts({"a": 1, "b": 2}, {"b": 3, "c": 1})
     {'a': 1, 'b': 5, 'c': 1}
     """
-    raise NotImplementedError
+    total: Counter[str] = Counter()
+    for d in dicts:
+        total.update(d)  # update у Counter СКЛАДЫВАЕТ, а у dict — перезаписывает
+    return dict(total)
 
 
 def most_common_words(text: str, k: int) -> list[tuple[str, int]]:
@@ -48,7 +60,8 @@ def most_common_words(text: str, k: int) -> list[tuple[str, int]]:
     >>> most_common_words("b a, A! b c a", 2)
     [('a', 3), ('b', 2)]
     """
-    raise NotImplementedError
+    counts = Counter(re.findall(r"\w+", text.lower()))
+    return sorted(counts.items(), key=lambda p: (-p[1], p[0]))[:k]
 
 
 def sliding_window_max(nums: list[int], k: int) -> list[int]:
@@ -59,4 +72,14 @@ def sliding_window_max(nums: list[int], k: int) -> list[int]:
 
     Цель: O(n). Монотонная очередь (deque) индексов с убывающими значениями.
     """
-    raise NotImplementedError
+    window: deque[int] = deque()
+    result = []
+    for i, x in enumerate(nums):
+        while window and nums[window[-1]] <= x:
+            window.pop()  # меньшие элементы уже никогда не станут максимумом
+        window.append(i)
+        if window[0] <= i - k:
+            window.popleft()  # вышел за левую границу окна
+        if i >= k - 1:
+            result.append(nums[window[0]])
+    return result

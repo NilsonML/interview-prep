@@ -16,6 +16,7 @@ with гарантирует закрывающее действие при лю�
        (обязательно в finally) — выход.
 """
 
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -32,13 +33,15 @@ class Timer:
     """
 
     def __init__(self) -> None:
-        raise NotImplementedError
+        self.elapsed: float | None = None
 
     def __enter__(self) -> "Timer":
-        raise NotImplementedError
+        self._start = time.perf_counter()
+        return self  # то, что окажется после "as"
 
     def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
-        raise NotImplementedError
+        self.elapsed = time.perf_counter() - self._start
+        return False  # True подавило бы исключение из блока
 
 
 @contextmanager
@@ -48,7 +51,10 @@ def suppress(*exceptions: type[BaseException]) -> Iterator[None]:
     with suppress(KeyError):
         {}["missing"]       # программа идёт дальше
     """
-    raise NotImplementedError
+    try:
+        yield
+    except exceptions:
+        pass
 
 
 @contextmanager
@@ -60,4 +66,13 @@ def temporary_attr(obj: Any, name: str, value: Any) -> Iterator[Any]:
     with temporary_attr(config, "DEBUG", True):
         ...
     """
-    raise NotImplementedError
+    missing = object()  # уникальный маркер: отличает «атрибута нет» от «атрибут = None»
+    old = getattr(obj, name, missing)
+    setattr(obj, name, value)
+    try:
+        yield obj
+    finally:
+        if old is missing:
+            delattr(obj, name)
+        else:
+            setattr(obj, name, old)

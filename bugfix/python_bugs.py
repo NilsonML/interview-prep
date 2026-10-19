@@ -12,25 +12,32 @@
 В каждой функции ровно один баг, если в docstring не сказано другое.
 """
 
+import copy
+import functools
+from collections import defaultdict
 from collections.abc import Callable, Iterable
 from typing import Any
 
 FIXED = {
-    "add_tag": False,
-    "make_multipliers": False,
-    "remove_negatives": False,
-    "merge_config": False,
-    "logged": False,
-    "mean_and_max": False,
-    "group_by_first_letter": False,
+    "add_tag": True,
+    "make_multipliers": True,
+    "remove_negatives": True,
+    "merge_config": True,
+    "logged": True,
+    "mean_and_max": True,
+    "group_by_first_letter": True,
 }
 
 
-def add_tag(tag: str, tags: list[str] = []) -> list[str]:  # noqa: B006
+def add_tag(tag: str, tags: list[str] | None = None) -> list[str]:
     """Добавляет тег в список и возвращает его. Без второго аргумента — новый список.
 
     Жалоба: «Вызываю add_tag("a"), потом add_tag("b") и получаю ["a", "b"] вместо ["b"]».
     """
+    # БАГ: tags=[] вычисляется один раз при def, все вызовы делили один список.
+    # ИСПРАВЛЕНИЕ: None как маркер «не передали», новый список внутри функции.
+    if tags is None:
+        tags = []
     tags.append(tag)
     return tags
 
@@ -40,7 +47,9 @@ def make_multipliers() -> list[Callable[[int], int]]:
 
     Жалоба: «[m(2) for m in make_multipliers()] даёт [6, 6, 6, 6] вместо [0, 2, 4, 6]».
     """
-    return [lambda x: x * i for i in range(4)]  # noqa: B023
+    # БАГ: лямбда запоминала переменную i (позднее связывание), к вызову i == 3.
+    # ИСПРАВЛЕНИЕ: значение фиксируется аргументом по умолчанию в момент создания.
+    return [lambda x, i=i: x * i for i in range(4)]
 
 
 def remove_negatives(nums: list[int]) -> list[int]:
@@ -49,10 +58,10 @@ def remove_negatives(nums: list[int]) -> list[int]:
     Жалоба: «Для [-1, -2, 3] получаю [-2, 3], и мой исходный список тоже испортился».
     Здесь два бага.
     """
-    for n in nums:
-        if n < 0:
-            nums.remove(n)
-    return nums
+    # БАГ 1: удаление во время обхода сдвигает элементы, цикл перепрыгивает следующий.
+    # БАГ 2: функция меняла входной список.
+    # ИСПРАВЛЕНИЕ: строим новый список, вход не трогаем.
+    return [n for n in nums if n >= 0]
 
 
 def merge_config(base: dict, overrides: dict) -> dict:
@@ -62,7 +71,10 @@ def merge_config(base: dict, overrides: dict) -> dict:
     Жалоба: «После merge_config мой DEFAULT_CONFIG изменился, и следующий запуск
     получил чужие настройки базы данных».
     """
-    result = base.copy()
+    # БАГ: base.copy() — поверхностная копия, вложенные dict остались общими,
+    # и update() менял их внутри base.
+    # ИСПРАВЛЕНИЕ: глубокая копия (или рекурсивное слияние в новые словари).
+    result = copy.deepcopy(base)
     for key, value in overrides.items():
         if isinstance(value, dict) and isinstance(result.get(key), dict):
             result[key].update(value)
@@ -78,6 +90,9 @@ def logged(func: Callable[..., Any]) -> Callable[..., Any]:
     pytest и в документации ничего не понять».
     """
 
+    # БАГ: обёртка не копировала метаданные функции.
+    # ИСПРАВЛЕНИЕ: functools.wraps переносит __name__, __doc__, __wrapped__ и др.
+    @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         CALL_LOG.append(func.__name__)
         return func(*args, **kwargs)
@@ -93,9 +108,10 @@ def mean_and_max(values: Iterable[float]) -> tuple[float, float]:
 
     Жалоба: «С обычным списком работает, а с генератором падает с ZeroDivisionError».
     """
-    total = sum(values)
-    count = sum(1 for _ in values)
-    return total / count, max(values)
+    # БАГ: генератор одноразовый — sum() его исчерпал, второй проход давал 0 элементов.
+    # ИСПРАВЛЕНИЕ: один раз материализуем в список (или считаем всё за один проход).
+    values = list(values)
+    return sum(values) / len(values), max(values)
 
 
 def group_by_first_letter(words: list[str]) -> dict[str, list[str]]:
@@ -103,7 +119,9 @@ def group_by_first_letter(words: list[str]) -> dict[str, list[str]]:
 
     Жалоба: «В каждой группе оказываются ВСЕ слова».
     """
-    groups = dict.fromkeys({w[0] for w in words}, [])
+    # БАГ: dict.fromkeys(keys, []) кладёт ОДИН и тот же список во все ключи.
+    # ИСПРАВЛЕНИЕ: defaultdict(list) создаёт новый список для каждого ключа.
+    groups: defaultdict[str, list[str]] = defaultdict(list)
     for w in words:
         groups[w[0]].append(w)
-    return groups
+    return dict(groups)

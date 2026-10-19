@@ -43,20 +43,57 @@ from typing import Any
 
 class MinHeap:
     def __init__(self) -> None:
-        raise NotImplementedError
+        self._data: list[Any] = []
 
     @classmethod
     def heapify(cls, items: list[Any]) -> "MinHeap":
-        raise NotImplementedError
+        heap = cls()
+        heap._data = list(items)
+        # Листья (вторая половина массива) уже кучи из одного элемента.
+        # Топим каждый внутренний узел снизу вверх: суммарно O(n).
+        for i in range(len(heap._data) // 2 - 1, -1, -1):
+            heap._sift_down(i)
+        return heap
 
     def push(self, value: Any) -> None:
-        raise NotImplementedError
+        self._data.append(value)
+        self._sift_up(len(self._data) - 1)
 
     def pop(self) -> Any:
-        raise NotImplementedError
+        if not self._data:
+            raise IndexError("pop from empty heap")
+        last = self._data.pop()
+        if not self._data:
+            return last
+        top, self._data[0] = self._data[0], last
+        self._sift_down(0)
+        return top
 
     def peek(self) -> Any:
-        raise NotImplementedError
+        if not self._data:
+            raise IndexError("peek from empty heap")
+        return self._data[0]
 
     def __len__(self) -> int:
-        raise NotImplementedError
+        return len(self._data)
+
+    def _sift_up(self, i: int) -> None:
+        data = self._data
+        while i > 0:
+            parent = (i - 1) // 2
+            if data[i] >= data[parent]:
+                break
+            data[i], data[parent] = data[parent], data[i]
+            i = parent
+
+    def _sift_down(self, i: int) -> None:
+        data, n = self._data, len(self._data)
+        while True:
+            smallest = i
+            for child in (2 * i + 1, 2 * i + 2):
+                if child < n and data[child] < data[smallest]:
+                    smallest = child
+            if smallest == i:
+                return
+            data[i], data[smallest] = data[smallest], data[i]
+            i = smallest

@@ -20,7 +20,15 @@ def is_valid_brackets(s: str) -> bool:
     >>> is_valid_brackets("(]")
     False
     """
-    raise NotImplementedError
+    pairs = {")": "(", "]": "[", "}": "{"}
+    stack = []
+    for ch in s:
+        if ch in pairs:
+            if not stack or stack.pop() != pairs[ch]:
+                return False
+        else:
+            stack.append(ch)
+    return not stack  # незакрытые скобки тоже ошибка
 
 
 def eval_rpn(tokens: list[str]) -> int:
@@ -32,7 +40,21 @@ def eval_rpn(tokens: list[str]) -> int:
     >>> eval_rpn(["4", "13", "5", "/", "+"])
     6
     """
-    raise NotImplementedError
+    stack: list[int] = []
+    for tok in tokens:
+        if tok in {"+", "-", "*", "/"}:
+            b, a = stack.pop(), stack.pop()  # порядок важен: a op b
+            if tok == "+":
+                stack.append(a + b)
+            elif tok == "-":
+                stack.append(a - b)
+            elif tok == "*":
+                stack.append(a * b)
+            else:
+                stack.append(int(a / b))  # // округляет вниз: -7 // 2 == -4, а нужно -3
+        else:
+            stack.append(int(tok))
+    return stack[0]
 
 
 def daily_temperatures(temps: list[int]) -> list[int]:
@@ -43,7 +65,14 @@ def daily_temperatures(temps: list[int]) -> list[int]:
 
     Цель: O(n). Монотонный стек индексов дней, ещё не нашедших более тёплый день.
     """
-    raise NotImplementedError
+    answer = [0] * len(temps)
+    stack: list[int] = []  # индексы; температуры в стеке убывают
+    for i, t in enumerate(temps):
+        while stack and temps[stack[-1]] < t:
+            j = stack.pop()
+            answer[j] = i - j
+        stack.append(i)
+    return answer
 
 
 def decode_string(s: str) -> str:
@@ -56,7 +85,20 @@ def decode_string(s: str) -> str:
 
     Подумай: что положить в стек при "[" и что достать при "]"?
     """
-    raise NotImplementedError
+    stack: list[tuple[str, int]] = []
+    current, number = "", 0
+    for ch in s:
+        if ch.isdigit():
+            number = number * 10 + int(ch)  # числа бывают многозначными
+        elif ch == "[":
+            stack.append((current, number))  # запоминаем внешний контекст
+            current, number = "", 0
+        elif ch == "]":
+            prev, k = stack.pop()
+            current = prev + current * k
+        else:
+            current += ch
+    return current
 
 
 def largest_rectangle_area(heights: list[int]) -> int:
@@ -68,4 +110,12 @@ def largest_rectangle_area(heights: list[int]) -> int:
     Цель: O(n). Монотонный возрастающий стек: когда столбец снимается, справа от него
     первый более низкий (текущий), слева — тот, что под ним в стеке.
     """
-    raise NotImplementedError
+    stack: list[int] = []
+    best = 0
+    for i, h in enumerate([*heights, 0]):  # 0 в конце снимает всё оставшееся
+        while stack and heights[stack[-1]] >= h:
+            height = heights[stack.pop()]
+            left = stack[-1] if stack else -1
+            best = max(best, height * (i - left - 1))
+        stack.append(i)
+    return best

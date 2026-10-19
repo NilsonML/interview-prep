@@ -17,6 +17,7 @@
 ЛОВУШКА: генератор исчерпывается — второй list(g) вернёт [].
 """
 
+from collections import deque
 from collections.abc import Iterable, Iterator
 from typing import Any
 
@@ -28,7 +29,10 @@ def fibonacci() -> Iterator[int]:
     >>> list(islice(fibonacci(), 6))
     [0, 1, 1, 2, 3, 5]
     """
-    raise NotImplementedError
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a + b
 
 
 def powers(base: int, n: int) -> Iterator[int]:
@@ -37,7 +41,10 @@ def powers(base: int, n: int) -> Iterator[int]:
     >>> list(powers(2, 5))
     [1, 2, 4, 8, 16]
     """
-    raise NotImplementedError
+    value = 1
+    for _ in range(n):
+        yield value
+        value *= base
 
 
 def take(iterable: Iterable[Any], n: int) -> list[Any]:
@@ -47,7 +54,14 @@ def take(iterable: Iterable[Any], n: int) -> list[Any]:
     >>> take(fibonacci(), 3)
     [0, 1, 1]
     """
-    raise NotImplementedError
+    result = []
+    if n <= 0:
+        return result
+    for item in iterable:
+        result.append(item)
+        if len(result) == n:  # останавливаемся сами: бесконечный генератор не исчерпать
+            break
+    return result
 
 
 def chunked(iterable: Iterable[Any], size: int) -> Iterator[list[Any]]:
@@ -57,7 +71,14 @@ def chunked(iterable: Iterable[Any], size: int) -> Iterator[list[Any]]:
     >>> list(chunked(range(5), 2))
     [[0, 1], [2, 3], [4]]
     """
-    raise NotImplementedError
+    chunk = []
+    for item in iterable:
+        chunk.append(item)
+        if len(chunk) == size:
+            yield chunk
+            chunk = []
+    if chunk:
+        yield chunk
 
 
 def flatten(nested: Iterable[Any]) -> Iterator[Any]:
@@ -66,7 +87,11 @@ def flatten(nested: Iterable[Any]) -> Iterator[Any]:
     >>> list(flatten([1, [2, [3, "ab"]], 4]))
     [1, 2, 3, 'ab', 4]
     """
-    raise NotImplementedError
+    for item in nested:
+        if isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
+            yield from flatten(item)  # делегируем вложенному генератору
+        else:
+            yield item
 
 
 def sliding_windows(iterable: Iterable[Any], k: int) -> Iterator[tuple[Any, ...]]:
@@ -75,7 +100,11 @@ def sliding_windows(iterable: Iterable[Any], k: int) -> Iterator[tuple[Any, ...]
     >>> list(sliding_windows([1, 2, 3, 4], 3))
     [(1, 2, 3), (2, 3, 4)]
     """
-    raise NotImplementedError
+    window: deque[Any] = deque(maxlen=k)  # maxlen: старые элементы вытесняются сами
+    for item in iterable:
+        window.append(item)
+        if len(window) == k:
+            yield tuple(window)
 
 
 class Countdown:
@@ -90,20 +119,26 @@ class Countdown:
     """
 
     def __init__(self, start: int) -> None:
-        raise NotImplementedError
+        self.start = start
 
     def __iter__(self) -> "CountdownIterator":
-        raise NotImplementedError
+        # Каждый вызов iter() даёт НОВЫЙ итератор со своим состоянием,
+        # поэтому повторный цикл начинается заново.
+        return CountdownIterator(self.start)
 
 
 class CountdownIterator:
     """Итератор для Countdown: хранит текущее состояние обхода."""
 
     def __init__(self, current: int) -> None:
-        raise NotImplementedError
+        self.current = current
 
     def __iter__(self) -> "CountdownIterator":
-        raise NotImplementedError
+        return self  # итератор тоже итерируем: возвращает сам себя
 
     def __next__(self) -> int:
-        raise NotImplementedError
+        if self.current <= 0:
+            raise StopIteration
+        value = self.current
+        self.current -= 1
+        return value

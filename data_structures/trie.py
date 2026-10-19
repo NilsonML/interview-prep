@@ -34,16 +34,39 @@ class TrieNode:
 
 class Trie:
     def __init__(self) -> None:
-        raise NotImplementedError
+        self.root = TrieNode()
 
     def insert(self, word: str) -> None:
-        raise NotImplementedError
+        node = self.root
+        for ch in word:
+            node = node.children.setdefault(ch, TrieNode())
+        node.is_word = True
+
+    def _find(self, prefix: str) -> TrieNode | None:
+        node = self.root
+        for ch in prefix:
+            node = node.children.get(ch)
+            if node is None:
+                return None
+        return node
 
     def search(self, word: str) -> bool:
-        raise NotImplementedError
+        node = self._find(word)
+        return node is not None and node.is_word
 
     def starts_with(self, prefix: str) -> bool:
-        raise NotImplementedError
+        return self._find(prefix) is not None
 
     def words_with_prefix(self, prefix: str) -> list[str]:
-        raise NotImplementedError
+        start = self._find(prefix)
+        if start is None:
+            return []
+        result: list[str] = []
+        stack = [(start, prefix)]
+        while stack:  # DFS; детей кладём в обратном порядке, чтобы выдавать по алфавиту
+            node, word = stack.pop()
+            if node.is_word:
+                result.append(word)
+            for ch in sorted(node.children, reverse=True):
+                stack.append((node.children[ch], word + ch))
+        return result

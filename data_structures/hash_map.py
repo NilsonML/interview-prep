@@ -48,26 +48,60 @@ LOAD_FACTOR = 0.75
 
 class HashMap:
     def __init__(self, capacity: int = 8) -> None:
-        raise NotImplementedError
+        # Каждая корзина — список пар (key, value). Коллизии просто попадают в одну корзину.
+        self._buckets: list[list[tuple[Hashable, Any]]] = [[] for _ in range(capacity)]
+        self._size = 0
 
     @property
     def capacity(self) -> int:
-        raise NotImplementedError
+        return len(self._buckets)
+
+    def _bucket(self, key: Hashable) -> list[tuple[Hashable, Any]]:
+        # hash() может быть отрицательным; % в Python всегда даёт неотрицательный остаток
+        return self._buckets[hash(key) % len(self._buckets)]
 
     def put(self, key: Hashable, value: Any) -> None:
-        raise NotImplementedError
+        bucket = self._bucket(key)
+        for i, (k, _) in enumerate(bucket):
+            if k == key:  # ключ уже есть: обновляем, размер не меняется
+                bucket[i] = (key, value)
+                return
+        bucket.append((key, value))
+        self._size += 1
+        if self._size / len(self._buckets) > LOAD_FACTOR:
+            self._resize(2 * len(self._buckets))
+
+    def _resize(self, new_capacity: int) -> None:
+        # Номер корзины = hash % capacity, при новом capacity он другой.
+        # Поэтому каждый ключ перекладываем заново: O(n), но редко -> амортизированно O(1).
+        old = self._buckets
+        self._buckets = [[] for _ in range(new_capacity)]
+        for bucket in old:
+            for key, value in bucket:
+                self._bucket(key).append((key, value))
 
     def get(self, key: Hashable, default: Any = None) -> Any:
-        raise NotImplementedError
+        for k, v in self._bucket(key):
+            if k == key:
+                return v
+        return default
 
     def remove(self, key: Hashable) -> None:
-        raise NotImplementedError
+        bucket = self._bucket(key)
+        for i, (k, _) in enumerate(bucket):
+            if k == key:
+                bucket.pop(i)
+                self._size -= 1
+                return
+        raise KeyError(key)
 
     def __contains__(self, key: Hashable) -> bool:
-        raise NotImplementedError
+        return any(k == key for k, _ in self._bucket(key))
 
     def __len__(self) -> int:
-        raise NotImplementedError
+        return self._size
 
     def __iter__(self) -> Iterator[Hashable]:
-        raise NotImplementedError
+        for bucket in self._buckets:
+            for key, _ in bucket:
+                yield key

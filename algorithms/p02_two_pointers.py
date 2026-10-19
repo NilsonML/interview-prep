@@ -23,7 +23,18 @@ def is_palindrome(s: str) -> bool:
 
     Цель: O(n) времени, O(1) памяти (без создания очищенной копии).
     """
-    raise NotImplementedError
+    left, right = 0, len(s) - 1
+    while left < right:
+        if not s[left].isalnum():
+            left += 1
+        elif not s[right].isalnum():
+            right -= 1
+        elif s[left].lower() != s[right].lower():
+            return False
+        else:
+            left += 1
+            right -= 1
+    return True
 
 
 def two_sum_sorted(numbers: list[int], target: int) -> tuple[int, int]:
@@ -36,7 +47,16 @@ def two_sum_sorted(numbers: list[int], target: int) -> tuple[int, int]:
     Цель: O(n) времени и O(1) памяти — без словаря.
     Подумай: сумма меньше target — какой указатель сдвинуть и почему это безопасно?
     """
-    raise NotImplementedError
+    left, right = 0, len(numbers) - 1
+    while left < right:
+        s = numbers[left] + numbers[right]
+        if s == target:
+            return left, right
+        if s < target:
+            left += 1  # numbers[left] с любым другим правым даст ещё меньше — отбрасываем
+        else:
+            right -= 1
+    raise ValueError("no solution")
 
 
 def three_sum(nums: list[int]) -> list[list[int]]:
@@ -49,7 +69,27 @@ def three_sum(nums: list[int]) -> list[list[int]]:
     Цель: O(n^2). Подумай: зафиксируй первый элемент — что осталось решить?
     Как пропускать дубликаты без set?
     """
-    raise NotImplementedError
+    nums = sorted(nums)
+    result = []
+    for i in range(len(nums) - 2):
+        if i > 0 and nums[i] == nums[i - 1]:
+            continue  # такой первый элемент уже рассматривали
+        if nums[i] > 0:
+            break  # дальше все положительные, сумма не может быть 0
+        left, right = i + 1, len(nums) - 1
+        while left < right:
+            s = nums[i] + nums[left] + nums[right]
+            if s < 0:
+                left += 1
+            elif s > 0:
+                right -= 1
+            else:
+                result.append([nums[i], nums[left], nums[right]])
+                left += 1
+                while left < right and nums[left] == nums[left - 1]:
+                    left += 1
+                right -= 1
+    return result
 
 
 def max_area(height: list[int]) -> int:
@@ -60,7 +100,16 @@ def max_area(height: list[int]) -> int:
 
     Цель: O(n). Подумай: почему всегда двигаем указатель с МЕНЬШЕЙ высотой?
     """
-    raise NotImplementedError
+    left, right, best = 0, len(height) - 1, 0
+    while left < right:
+        best = max(best, (right - left) * min(height[left], height[right]))
+        # Объём ограничен меньшей стенкой. Сдвинув большую, ширина уменьшится,
+        # а высота не вырастет выше меньшей стенки -> лучше не станет.
+        if height[left] < height[right]:
+            left += 1
+        else:
+            right -= 1
+    return best
 
 
 def remove_duplicates(nums: list[int]) -> int:
@@ -74,7 +123,14 @@ def remove_duplicates(nums: list[int]) -> int:
 
     Цель: O(n), O(1) памяти. Паттерн «медленный и быстрый указатель».
     """
-    raise NotImplementedError
+    if not nums:
+        return 0
+    write = 1  # куда писать следующий уникальный
+    for read in range(1, len(nums)):
+        if nums[read] != nums[write - 1]:
+            nums[write] = nums[read]
+            write += 1
+    return write
 
 
 def merge_sorted(a: list[int], b: list[int]) -> list[int]:
@@ -85,4 +141,15 @@ def merge_sorted(a: list[int], b: list[int]) -> list[int]:
 
     Цель: O(len(a) + len(b)), без sorted().
     """
-    raise NotImplementedError
+    i = j = 0
+    result = []
+    while i < len(a) and j < len(b):
+        if a[i] <= b[j]:  # <= сохраняет порядок равных (устойчивость)
+            result.append(a[i])
+            i += 1
+        else:
+            result.append(b[j])
+            j += 1
+    result.extend(a[i:])
+    result.extend(b[j:])
+    return result

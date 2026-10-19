@@ -11,6 +11,8 @@
 defaultdict(list) (группировка), sorted(word) или кортеж частот как ключ.
 """
 
+from collections import Counter, defaultdict
+
 
 def contains_duplicate(nums: list[int]) -> bool:
     """LeetCode 217. Есть ли в массиве повторяющийся элемент.
@@ -23,7 +25,12 @@ def contains_duplicate(nums: list[int]) -> bool:
     Цель: O(n) времени.
     Подумай: какая структура мгновенно отвечает «видел ли я это раньше»?
     """
-    raise NotImplementedError
+    seen = set()
+    for x in nums:
+        if x in seen:
+            return True
+        seen.add(x)
+    return False
 
 
 def is_anagram(s: str, t: str) -> bool:
@@ -36,7 +43,7 @@ def is_anagram(s: str, t: str) -> bool:
 
     Цель: O(n). Сортировка даёт O(n log n) — можно лучше.
     """
-    raise NotImplementedError
+    return len(s) == len(t) and Counter(s) == Counter(t)
 
 
 def two_sum(nums: list[int], target: int) -> tuple[int, int]:
@@ -49,7 +56,12 @@ def two_sum(nums: list[int], target: int) -> tuple[int, int]:
     Цель: O(n) за один проход.
     Подумай: для числа x ты ищешь target - x. Где его быстро найти?
     """
-    raise NotImplementedError
+    seen: dict[int, int] = {}  # число -> индекс
+    for j, x in enumerate(nums):
+        if target - x in seen:
+            return seen[target - x], j
+        seen[x] = j  # после проверки: иначе [3, 3] с target 6 найдёт x в паре с собой
+    raise ValueError("no solution")
 
 
 def group_anagrams(words: list[str]) -> list[list[str]]:
@@ -62,7 +74,10 @@ def group_anagrams(words: list[str]) -> list[list[str]]:
     Цель: O(n * k log k), k — длина слова.
     Подумай: каким должен быть КЛЮЧ словаря, чтобы все анаграммы к нему сошлись?
     """
-    raise NotImplementedError
+    groups: dict[str, list[str]] = defaultdict(list)  # dict хранит порядок вставки
+    for w in words:
+        groups["".join(sorted(w))].append(w)
+    return list(groups.values())
 
 
 def top_k_frequent(nums: list[int], k: int) -> list[int]:
@@ -74,7 +89,17 @@ def top_k_frequent(nums: list[int], k: int) -> list[int]:
 
     Цель: лучше, чем O(n log n). Подумай про bucket sort: частота не больше n.
     """
-    raise NotImplementedError
+    counts = Counter(nums)
+    buckets: list[list[int]] = [[] for _ in range(len(nums) + 1)]  # индекс = частота
+    for x, c in counts.items():
+        buckets[c].append(x)
+    result: list[int] = []
+    for c in range(len(buckets) - 1, 0, -1):
+        for x in sorted(buckets[c]):
+            result.append(x)
+            if len(result) == k:
+                return result
+    return result
 
 
 def product_except_self(nums: list[int]) -> list[int]:
@@ -86,7 +111,17 @@ def product_except_self(nums: list[int]) -> list[int]:
     Цель: O(n) времени, O(1) доп. памяти не считая ответа.
     Подумай: произведение = (всё слева) * (всё справа).
     """
-    raise NotImplementedError
+    n = len(nums)
+    answer = [1] * n
+    left = 1
+    for i in range(n):  # проход слева: answer[i] = произведение левее i
+        answer[i] = left
+        left *= nums[i]
+    right = 1
+    for i in range(n - 1, -1, -1):  # проход справа: домножаем на произведение правее i
+        answer[i] *= right
+        right *= nums[i]
+    return answer
 
 
 def longest_consecutive(nums: list[int]) -> int:
@@ -98,4 +133,12 @@ def longest_consecutive(nums: list[int]) -> int:
     Цель: O(n) — сортировка не подходит.
     Подумай: с какого числа имеет смысл начинать отсчёт последовательности?
     """
-    raise NotImplementedError
+    values = set(nums)
+    best = 0
+    for x in values:
+        if x - 1 not in values:  # x — начало последовательности, считаем только отсюда
+            length = 1
+            while x + length in values:
+                length += 1
+            best = max(best, length)
+    return best  # каждое число просматривается O(1) раз -> O(n)

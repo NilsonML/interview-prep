@@ -24,13 +24,29 @@
 
 class UnionFind:
     def __init__(self, n: int) -> None:
-        raise NotImplementedError
+        self.parent = list(range(n))
+        self.rank = [0] * n
+        self.count = n
 
     def find(self, x: int) -> int:
-        raise NotImplementedError
+        root = x
+        while self.parent[root] != root:
+            root = self.parent[root]
+        while self.parent[x] != root:  # сжатие путей: все узлы пути смотрят прямо в корень
+            self.parent[x], x = root, self.parent[x]
+        return root
 
     def union(self, a: int, b: int) -> bool:
-        raise NotImplementedError
+        ra, rb = self.find(a), self.find(b)
+        if ra == rb:
+            return False
+        if self.rank[ra] < self.rank[rb]:  # низкое дерево подвешиваем к высокому
+            ra, rb = rb, ra
+        self.parent[rb] = ra
+        if self.rank[ra] == self.rank[rb]:
+            self.rank[ra] += 1
+        self.count -= 1
+        return True
 
     def connected(self, a: int, b: int) -> bool:
-        raise NotImplementedError
+        return self.find(a) == self.find(b)

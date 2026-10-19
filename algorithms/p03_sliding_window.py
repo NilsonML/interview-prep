@@ -12,6 +12,8 @@
 счётчике (Counter / dict), а не пересчитывай с нуля.
 """
 
+from collections import Counter
+
 
 def max_sum_window(nums: list[int], k: int) -> int:
     """Максимальная сумма подмассива длины ровно k (окно фиксированного размера).
@@ -21,7 +23,12 @@ def max_sum_window(nums: list[int], k: int) -> int:
 
     Цель: O(n), а не O(n*k). Подумай: как пересчитать сумму при сдвиге окна на 1?
     """
-    raise NotImplementedError
+    window = sum(nums[:k])
+    best = window
+    for right in range(k, len(nums)):
+        window += nums[right] - nums[right - k]  # вошёл справа, вышел слева
+        best = max(best, window)
+    return best
 
 
 def max_profit(prices: list[int]) -> int:
@@ -33,7 +40,12 @@ def max_profit(prices: list[int]) -> int:
 
     Цель: O(n), один проход.
     """
-    raise NotImplementedError
+    min_price = float("inf")
+    best = 0
+    for p in prices:
+        min_price = min(min_price, p)  # лучший день покупки среди прошедших
+        best = max(best, p - min_price)
+    return best
 
 
 def length_of_longest_substring(s: str) -> int:
@@ -44,7 +56,14 @@ def length_of_longest_substring(s: str) -> int:
 
     Цель: O(n). Подумай: что делать с левой границей, когда встретили повтор?
     """
-    raise NotImplementedError
+    last_seen: dict[str, int] = {}
+    left = best = 0
+    for right, ch in enumerate(s):
+        if last_seen.get(ch, -1) >= left:
+            left = last_seen[ch] + 1  # прыгаем сразу за предыдущее вхождение
+        last_seen[ch] = right
+        best = max(best, right - left + 1)
+    return best
 
 
 def character_replacement(s: str, k: int) -> int:
@@ -56,7 +75,16 @@ def character_replacement(s: str, k: int) -> int:
 
     Цель: O(n). Подумай: окно валидно, если (длина окна - частота самого частого) <= k.
     """
-    raise NotImplementedError
+    counts: Counter[str] = Counter()
+    left = max_freq = best = 0
+    for right, ch in enumerate(s):
+        counts[ch] += 1
+        max_freq = max(max_freq, counts[ch])
+        while (right - left + 1) - max_freq > k:
+            counts[s[left]] -= 1
+            left += 1
+        best = max(best, right - left + 1)
+    return best
 
 
 def min_window(s: str, t: str) -> str:
@@ -69,4 +97,21 @@ def min_window(s: str, t: str) -> str:
     Цель: O(len(s) + len(t)).
     Подумай: расширяй окно, пока не покрыло t; потом сжимай слева, пока покрывает.
     """
-    raise NotImplementedError
+    if not t:
+        return ""
+    need = Counter(t)
+    missing = len(t)  # сколько символов t ещё не покрыто
+    left = 0
+    best_start, best_len = 0, float("inf")
+    for right, ch in enumerate(s):
+        if need[ch] > 0:
+            missing -= 1
+        need[ch] -= 1
+        while missing == 0:
+            if right - left + 1 < best_len:
+                best_start, best_len = left, right - left + 1
+            need[s[left]] += 1
+            if need[s[left]] > 0:  # убрали нужный символ — окно перестало покрывать t
+                missing += 1
+            left += 1
+    return "" if best_len == float("inf") else s[best_start : best_start + best_len]

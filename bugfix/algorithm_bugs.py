@@ -8,14 +8,14 @@
 """
 
 FIXED = {
-    "binary_search": False,
-    "two_sum": False,
-    "max_profit": False,
-    "is_valid_brackets": False,
-    "merge_intervals": False,
-    "longest_unique_substring": False,
-    "count_islands": False,
-    "coin_change": False,
+    "binary_search": True,
+    "two_sum": True,
+    "max_profit": True,
+    "is_valid_brackets": True,
+    "merge_intervals": True,
+    "longest_unique_substring": True,
+    "count_islands": True,
+    "coin_change": True,
 }
 
 
@@ -24,7 +24,9 @@ def binary_search(nums: list[int], target: int) -> int:
 
     Жалоба: «binary_search([1, 3, 5], 7) падает с IndexError».
     """
-    lo, hi = 0, len(nums)
+    # БАГ: hi = len(nums) при условии lo <= hi (закрытый интервал) — mid мог стать len(nums).
+    # ИСПРАВЛЕНИЕ: границы должны соответствовать шаблону: [lo, hi] -> hi = len - 1.
+    lo, hi = 0, len(nums) - 1
     while lo <= hi:
         mid = (lo + hi) // 2
         if nums[mid] == target:
@@ -43,9 +45,11 @@ def two_sum(nums: list[int], target: int) -> tuple[int, int]:
     """
     seen: dict[int, int] = {}
     for j, x in enumerate(nums):
-        seen[x] = j
+        # БАГ: x клали в seen ДО проверки и находили пару «x с самим собой».
+        # ИСПРАВЛЕНИЕ: сначала ищем пару среди ПРЕДЫДУЩИХ, потом запоминаем x.
         if target - x in seen:
             return seen[target - x], j
+        seen[x] = j
     raise ValueError("no solution")
 
 
@@ -54,7 +58,9 @@ def max_profit(prices: list[int]) -> int:
 
     Жалоба: «Для [7, 5, 6] выдаёт 7, хотя купить за 5 и продать за 6 — это 1».
     """
-    min_price = 0
+    # БАГ: min_price = 0 — «купить за 0», такой цены не было.
+    # ИСПРАВЛЕНИЕ: начальный минимум — бесконечность (или первая цена).
+    min_price = float("inf")
     best = 0
     for p in prices:
         min_price = min(min_price, p)
@@ -75,7 +81,9 @@ def is_valid_brackets(s: str) -> bool:
                 return False
         else:
             stack.append(ch)
-    return True
+    # БАГ: незакрытые скобки в стеке игнорировались.
+    # ИСПРАВЛЕНИЕ: строка правильная, только если стек пуст.
+    return not stack
 
 
 def merge_intervals(intervals: list[list[int]]) -> list[list[int]]:
@@ -85,9 +93,13 @@ def merge_intervals(intervals: list[list[int]]) -> list[list[int]]:
     Здесь два бага.
     """
     result: list[list[int]] = []
-    for start, end in intervals:
+    # БАГ 1: без сортировки «следующий» интервал не обязательно правее.
+    # ИСПРАВЛЕНИЕ: sorted() по началу (и он не меняет вход).
+    for start, end in sorted(intervals):
         if result and start <= result[-1][1]:
-            result[-1][1] = end
+            # БАГ 2: конец перезаписывался, хотя вложенный интервал короче.
+            # ИСПРАВЛЕНИЕ: берём максимум концов.
+            result[-1][1] = max(result[-1][1], end)
         else:
             result.append([start, end])
     return result
@@ -101,8 +113,10 @@ def longest_unique_substring(s: str) -> int:
     last_seen: dict[str, int] = {}
     left = best = 0
     for right, ch in enumerate(s):
+        # БАГ: старое вхождение ЛЕВЕЕ окна сдвигало left назад ("abba": на второй a
+        # left прыгал с 2 на 1). ИСПРАВЛЕНИЕ: левая граница окна только растёт.
         if ch in last_seen:
-            left = last_seen[ch] + 1
+            left = max(left, last_seen[ch] + 1)
         last_seen[ch] = right
         best = max(best, right - left + 1)
     return best
@@ -117,8 +131,12 @@ def count_islands(grid: list[list[str]]) -> int:
     seen: set[tuple[int, int]] = set()
 
     def dfs(r: int, c: int) -> None:
-        if not (0 <= r < rows and 0 <= c < cols) or grid[r][c] != "1":
+        # БАГ: клетка не помечалась посещённой -> соседи бесконечно ходили друг к другу.
+        # ИСПРАВЛЕНИЕ: проверяем и помечаем seen при входе.
+        # (На очень больших островах рекурсия всё равно упрётся в лимит — тогда явный стек.)
+        if not (0 <= r < rows and 0 <= c < cols) or grid[r][c] != "1" or (r, c) in seen:
             return
+        seen.add((r, c))
         for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             dfs(r + dr, c + dc)
 
@@ -138,9 +156,12 @@ def coin_change(coins: list[int], amount: int) -> int:
     Жалоба: «coin_change([1, 3, 4], 6) возвращает 3, хотя 3 + 3 — это 2 монеты».
     Подсказка: это не опечатка, а неверный выбор алгоритма.
     """
-    count = 0
-    for coin in sorted(coins, reverse=True):
-        take = amount // coin
-        count += take
-        amount -= take * coin
-    return count if amount == 0 else -1
+    # БАГ: жадный выбор «самая крупная монета» оптимален не для всех наборов монет.
+    # ИСПРАВЛЕНИЕ: динамика dp[s] = 1 + min(dp[s - coin]) по всем монетам.
+    inf = amount + 1
+    dp = [0] + [inf] * amount
+    for s in range(1, amount + 1):
+        for coin in coins:
+            if coin <= s:
+                dp[s] = min(dp[s], dp[s - coin] + 1)
+    return dp[amount] if dp[amount] != inf else -1
